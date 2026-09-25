@@ -157,6 +157,8 @@ python app.py
 Open a browser and navigate to `http://127.0.0.1:5000`. You can drag-and-drop any file from the `sample_logs/` folder to view the interactive timeline, graphs, and audit trails.
 
 ---
+<img width="913" height="413" alt="Screenshot 2026-09-25 105949" src="https://github.com/user-attachments/assets/cc0bb51c-4bc4-46c7-ba5f-6da7600b770e" />
+
 
 ## Threat Detectors & MITRE ATT&CK Mapping Reference
 
