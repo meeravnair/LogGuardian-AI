@@ -1,4 +1,4 @@
-# 🛡️ LogGuardian AI
+#  LogGuardian AI
 
 > **Intelligent Security Log Analysis & Threat Detection Platform**
 
@@ -8,7 +8,7 @@ This project is structured as a production-quality portfolio asset suitable for 
 
 ---
 
-## 🎯 Main Features
+##  Main Features
 
 1. **Automatic Format Profile Parsing**: Auto-profiles Apache Access/Error logs, Nginx logs, Linux `auth.log` (SSH successes/failures), Syslog, and Firewall logs, falling back to a generic regex extractor for custom inputs.
 2. **Modular Threat Detection Suite**: Includes 10 specialized rule-based detectors targeting web exploits (SQLi, XSS, Path Traversal, Execution), login brute-forcing, volumetric DoS floods, automated scanner agents, and logical credential anomalies.
@@ -21,7 +21,7 @@ This project is structured as a production-quality portfolio asset suitable for 
 
 ---
 
-## 🏗️ Architectural Topology
+##  Architectural Topology
 
 ```mermaid
 graph TD
@@ -42,7 +42,7 @@ graph TD
 
 ---
 
-## 🛠️ Technology Stack & Dependencies
+##  Technology Stack & Dependencies
 
 - **Programming Language**: Python 3.11+
 - **Backend Framework**: Flask (routing, upload handler, database integrations)
@@ -54,7 +54,7 @@ graph TD
 
 ---
 
-## 📂 Project Directory Structure
+## Project Directory Structure
 
 ```text
 LogGuardianAI/
@@ -108,7 +108,7 @@ LogGuardianAI/
 
 ---
 
-## ⚡ Quick Start & Deployment Guide
+##  Quick Start & Deployment Guide
 
 ### 1. Environment Setup
 
@@ -158,7 +158,7 @@ Open a browser and navigate to `http://127.0.0.1:5000`. You can drag-and-drop an
 
 ---
 
-## 🔍 Threat Detectors & MITRE ATT&CK Mapping Reference
+## Threat Detectors & MITRE ATT&CK Mapping Reference
 
 | Detector Module | Target Attack Vector | MITRE Tactic | Technique ID | Technique Name |
 | :--- | :--- | :--- | :--- | :--- |
@@ -175,7 +175,7 @@ Open a browser and navigate to `http://127.0.0.1:5000`. You can drag-and-drop an
 
 ---
 
-## 👤 Developer Profile
+##  Developer Profile
 
 - **Developer Name**: Meera V Nair
 - **Position**: Lead Security Architect & DevSecOps Engineer
