@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Dashboard - LogGuardian AI</title>
+    <!-- Google Fonts & Bootstrap -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Plotly.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.24.1/plotly.min.js"></script>
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dark-theme">
+
+    <div class="glow-bg-1"></div>
+    <div class="glow-bg-2"></div>
+
+    <nav class="navbar navbar-expand-lg cyber-nav sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="🛡️" class="nav-logo me-2">
+                <span>LOG</span>GUARDIAN <span class="accent-text">AI</span>
+            </a>
+            <div class="d-flex align-items-center">
+                <a href="{{ url_for('index') }}" class="btn btn-cyber-outline btn-sm me-3"><i class="fa-solid fa-arrow-left me-1"></i>Portal Home</a>
+                <span class="text-secondary font-monospace small d-none d-md-inline">[ SCAN ACTIVE: #{{ scan.id[:8] }} ]</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4 main-content">
+        <!-- Breadcrumb & Download Header -->
+        <div class="dashboard-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 pb-3 border-bottom border-secondary">
+            <div>
+                <h1 class="page-title font-monospace m-0">{{ scan.filename }}</h1>
+                <p class="text-secondary m-0 mt-1 small">
+                    Size: {{ scan.file_size | format_size }} | Type: <span class="text-uppercase fw-bold text-cyan">{{ scan.log_type.replace('_', ' ') }}</span> | Scanned: {{ scan.timestamp.replace('T', ' ')[:19] }}
+                </p>
+            </div>
+            
+            <div class="btn-group mt-3 mt-md-0">
+                <button type="button" class="btn btn-cyber-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-file-export me-2"></i>Export Security Report
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark dropdown-cyber">
+                    <li><a class="dropdown-item" href="{{ url_for('download_report', scan_id=scan.id, file_format='pdf') }}"><i class="fa-solid fa-file-pdf me-2 text-danger"></i>Download PDF Report</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('download_report', scan_id=scan.id, file_format='html') }}"><i class="fa-solid fa-file-code me-2 text-info"></i>Download HTML Brief</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('download_report', scan_id=scan.id, file_format='json') }}"><i class="fa-solid fa-square-code me-2 text-warning"></i>Download JSON (SIEM)</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('download_report', scan_id=scan.id, file_format='csv') }}"><i class="fa-solid fa-file-csv me-2 text-success"></i>Download CSV (Alerts)</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Upper Row: Security Score Dial, Severity statistics & AI summary -->
+        <div class="row g-4 mb-4">
+            
+            <!-- Health Score Dial Card -->
+            <div class="col-lg-4">
+                <div class="cyber-card h-100 d-flex flex-column justify-content-center align-items-center text-center py-4">
+                    <h4 class="card-title-cyber mb-4">Security Health Rating</h4>
+                    
+                    <div class="dial-container">
+                        <!-- SVG Ring Dial -->
+                        <svg width="200" height="200" viewBox="0 0 200 200" class="dial-svg">
+                            <circle cx="100" cy="100" r="85" class="dial-bg-ring"></circle>
+                            {% set score = scan.security_score %}
+                            {% set offset = 534 - (534 * score / 100) %}
+                            <circle cx="100" cy="100" r="85" class="dial-fill-ring risk-stroke-{{ scan.risk_rating.lower() }}" 
+                                    style="stroke-dashoffset: {{ offset }}px;"></circle>
+                        </svg>
+                        <div class="dial-center-box">
+                            <span class="dial-score">{{ score }}</span>
+                            <span class="dial-total">/100</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <span class="badge badge-risk badge-risk-{{ scan.risk_rating.lower() }} px-3 py-2 fs-6">
+                            {{ scan.risk_rating }} RISK LEVEL
+                        </span>
+                        <p class="text-secondary small mt-2 m-0">Points deducted for verified incident vectors.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Investigation Summary Brief -->
+            <div class="col-lg-8">
+                <div class="cyber-card h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="card-title-cyber m-0"><i class="fa-solid fa-brain me-2 text-indigo"></i>AI Investigation Summary (Junior SOC Analyst Brief)</h4>
+                        <span class="badge badge-cyber font-monospace small">AI-Assisted</span>
+                    </div>
+                    
+                    <div class="ai-markdown-viewer" id="ai-summary-content">
+                        <!-- Convert markdown basic structure to styled HTML elements inside browser -->
+                        {{ scan.ai_summary | safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plotly Charts Row -->
+        {% if alerts %}
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="cyber-card">
+                    <h4 class="card-title-cyber mb-3"><i class="fa-solid fa-chart-pie me-2 text-cyan"></i>Detections Severity Share</h4>
+                    <div id="severity-chart" style="height: 250px;"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="cyber-card">
+                    <h4 class="card-title-cyber mb-3"><i class="fa-solid fa-chart-simple me-2 text-orange"></i>Threat Category Volumes</h4>
+                    <div id="detector-chart" style="height: 250px;"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Interactive Chronological Attack Timeline -->
+        {% if timeline %}
+        <div class="cyber-card mb-4">
+            <h4 class="card-title-cyber mb-4"><i class="fa-solid fa-timeline me-2 text-cyan"></i>Correlated Intrusion Timeline</h4>
+            <div class="timeline-container">
+                {% for event in timeline %}
+                    {% set sev = event.severity.lower() %}
+                    <div class="timeline-item">
+                        <div class="timeline-badge timeline-badge-{{ sev }}">
+                            <i class="fa-solid {{ 'fa-skull' if sev == 'critical' else ('fa-triangle-exclamation' if sev == 'high' else 'fa-circle-exclamation') }}"></i>
+                        </div>
+                        <div class="timeline-panel">
+                            <div class="timeline-heading d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge badge-risk badge-risk-{{ sev }} small">{{ event.severity }}</span>
+                                <span class="time-stamp text-secondary font-monospace small"><i class="fa-regular fa-clock me-1"></i>{{ event.timestamp }} ({{ event.time_offset }})</span>
+                            </div>
+                            <div class="timeline-body">
+                                <h5 class="event-title font-monospace m-0">{{ event.tactic }} stage: {{ event.technique_name }} ({{ event.technique_id }})</h5>
+                                <p class="event-desc text-secondary mt-1 mb-2">{{ event.description }}</p>
+                                
+                                {% if event.source_ip %}
+                                    <div class="event-meta mb-2">
+                                        <span class="small text-secondary me-3"><i class="fa-solid fa-network-wired me-1"></i>Adversary: <b>{{ event.source_ip }}</b></span>
+                                        <span class="small text-secondary" id="geo-info-{{ loop.index }}" data-ip="{{ event.source_ip }}">
+                                            <i class="fa-solid fa-earth-americas me-1"></i>Resolving Geo IP...
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                {% if event.payload %}
+                                    <button class="btn btn-sm btn-cyber-toggle font-monospace collapsed" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#timeline-payload-{{ loop.index }}">
+                                        Show Event Payload
+                                    </button>
+                                    <div class="collapse mt-2" id="timeline-payload-{{ loop.index }}">
+                                        <pre class="timeline-pre"><code>{{ event.payload }}</code></pre>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Detections Grid Table with Drawer details panel -->
+        <div class="cyber-card mb-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+                <h4 class="card-title-cyber m-0"><i class="fa-solid fa-list-check me-2 text-indigo"></i>Security Alerts Audit Trails ({{ alerts | length }} incidents)</h4>
+                <div class="search-wrap mt-3 mt-md-0">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="alerts-search-input" class="search-input-cyber" placeholder="Filter alerts table...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-cyber align-middle" id="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Host / Source IP</th>
+                            <th>Attack Vector</th>
+                            <th>Severity</th>
+                            <th>MITRE technique</th>
+                            <th>Incident Detail</th>
+                            <th class="text-end">Payload</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if alerts %}
+                            {% for a in alerts %}
+                                {% set sev = a.severity.lower() %}
+                                <tr class="alert-row">
+                                    <td class="font-monospace small">{{ a.timestamp }}</td>
+                                    <td>
+                                        <span class="fw-bold">{{ a.source_ip or 'N/A' }}</span>
+                                        {% if a.username %}
+                                            <span class="d-block small text-secondary"><i class="fa-solid fa-user me-1"></i>{{ a.username }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="text-cyan fw-medium">{{ a.detector | threat_label }}</span></td>
+                                    <td><span class="badge badge-risk badge-risk-{{ sev }}">{{ a.severity }}</span></td>
+                                    <td>
+                                        {% if a.technique_id %}
+                                            <span class="mitre-tag" data-bs-toggle="tooltip" data-bs-title="{{ a.technique_name }}">{{ a.technique_id }}</span>
+                                        {% else %}
+                                            <span class="text-secondary">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="alert-desc">{{ a.description }}</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-cyber-outline" type="button" data-bs-toggle="collapse" data-bs-target="#alert-details-{{ loop.index }}">
+                                            <i class="fa-solid fa-chevron-down"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="collapse-row">
+                                    <td colspan="7" class="p-0 border-0">
+                                        <div class="collapse alert-detail-drawer" id="alert-details-{{ loop.index }}">
+                                            <div class="p-4 border-top border-secondary bg-black-20">
+                                                <div class="row g-4">
+                                                    <div class="col-md-4">
+                                                        <h6 class="text-indigo font-monospace uppercase fw-bold border-bottom border-secondary pb-1"><i class="fa-solid fa-circle-info me-1"></i>Incident Profile</h6>
+                                                        <table class="table table-borderless table-sm text-secondary small">
+                                                            <tr>
+                                                                <td>Detector Module:</td>
+                                                                <td class="text-light font-monospace">{{ a.detector }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Tactic Name:</td>
+                                                                <td class="text-light">{{ a.tactic or 'N/A' }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>MITRE Reference:</td>
+                                                                <td class="text-light"><a href="https://attack.mitre.org/techniques/{{ a.technique_id }}/" target="_blank" class="text-info">{{ a.technique_id }} - {{ a.technique_name }}</a></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Event Count:</td>
+                                                                <td class="text-light font-monospace fw-bold">{{ a.occured_count or 1 }} occurrences correlated</td>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                    <div class="col-md-8">
+                                                        <h6 class="text-indigo font-monospace uppercase fw-bold border-bottom border-secondary pb-1"><i class="fa-solid fa-code-compare me-1"></i>IOC Raw Payload & Log Trace</h6>
+                                                        <pre class="alert-pre"><code>{{ a.payload or 'No raw payload captured for this alert.' }}</code></pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-secondary">
+                                    <i class="fa-solid fa-circle-check d-block fs-1 mb-3 text-success"></i>
+                                    No alerts logged. System environment shows clean profiles.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hidden element holding JSON metrics metadata for Script.js Plotly rendering -->
+    <div id="plotly-metrics-meta" data-scan-id="{{ scan.id }}" class="d-none"></div>
+
+    <footer class="cyber-footer py-4 mt-5">
+        <div class="container text-center text-secondary">
+            <p class="m-0">LogGuardian AI Platform &copy; 2026 | Designed & Engineered by <a href="{{ dev_info.github }}" target="_blank" class="dev-link">{{ dev_info.name }}</a></p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS Script -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

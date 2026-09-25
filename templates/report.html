@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LogGuardian AI Printable Report - {{ scan.filename }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #334155;
+            line-height: 1.5;
+            padding: 30px;
+            background-color: #ffffff;
+        }
+        .header {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #0f172a;
+        }
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .meta-table th, .meta-table td {
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            text-align: left;
+        }
+        .meta-table th {
+            background-color: #f8fafc;
+        }
+        .section-title {
+            border-bottom: 1px solid #0f172a;
+            padding-bottom: 5px;
+            color: #0f172a;
+            margin-top: 30px;
+        }
+        table.alerts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        table.alerts-table th, table.alerts-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        table.alerts-table th {
+            background-color: #0f172a;
+            color: #ffffff;
+        }
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        .badge-critical { background-color: #ef4444; color: white; }
+        .badge-high { background-color: #f97316; color: white; }
+        .badge-medium { background-color: #eab308; color: black; }
+        .badge-low { background-color: #3b82f6; color: white; }
+        pre {
+            background-color: #f1f5f9;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            overflow-x: auto;
+            border: 1px solid #cbd5e1;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.8em;
+            color: #64748b;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛡️ LogGuardian AI</h1>
+        <p>Security Log Assessment & Threat Detection Report</p>
+    </div>
+
+    <table class="meta-table">
+        <tr>
+            <th>Target Log File:</th>
+            <td>{{ scan.filename }}</td>
+            <th>Security Health Score:</th>
+            <td><strong>{{ scan.security_score }}/100</strong></td>
+        </tr>
+        <tr>
+            <th>Log Format:</th>
+            <td>{{ scan.log_type.upper() }}</td>
+            <th>Threat Risk Rating:</th>
+            <td><strong>{{ scan.risk_rating }}</strong></td>
+        </tr>
+        <tr>
+            <th>Processed Lines:</th>
+            <td>{{ scan.total_entries }}</td>
+            <th>Alerts Identified:</th>
+            <td>{{ alerts | length }}</td>
+        </tr>
+    </table>
+
+    <h2 class="section-title">🔍 Incident Analysis Brief</h2>
+    <div>
+        <!-- Summary block -->
+        {{ scan.ai_summary | safe }}
+    </div>
+
+    <h2 class="section-title">🚨 Threat Alert Trail</h2>
+    <table class="alerts-table">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Source IP</th>
+                <th>Category</th>
+                <th>Severity</th>
+                <th>MITRE Tactic/ID</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if alerts %}
+                {% for a in alerts %}
+                    <tr>
+                        <td>{{ a.timestamp }}</td>
+                        <td>{{ a.source_ip or 'N/A' }}</td>
+                        <td>{{ a.detector.replace('_', ' ').title() }}</td>
+                        <td><span class="badge badge-{{ a.severity.lower() }}">{{ a.severity }}</span></td>
+                        <td>{{ a.technique_id or 'N/A' }} - {{ a.technique_name or 'N/A' }}</td>
+                        <td>
+                            {{ a.description }}
+                            {% if a.payload %}
+                                <br><small><strong>Payload:</strong> {{ a.payload }}</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center;">No threat alerts detected.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>LogGuardian AI | Developer: Meera V Nair | GitHub: https://github.com/meeravnair</p>
+    </div>
+</body>
+</html>

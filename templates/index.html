@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogGuardian AI - Threat Detection Portal</title>
+    <!-- Google Fonts & Bootstrap -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dark-theme">
+
+    <!-- Glowing Background blobs -->
+    <div class="glow-bg-1"></div>
+    <div class="glow-bg-2"></div>
+
+    <nav class="navbar navbar-expand-lg cyber-nav sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="🛡️" class="nav-logo me-2">
+                <span>LOG</span>GUARDIAN <span class="accent-text">AI</span>
+            </a>
+            <div class="d-flex text-secondary font-monospace small">
+                <span>[ STATUS: ACTIVE MONITORING ]</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4 main-content">
+        <!-- Banner Message block -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show cyber-alert" role="alert">
+                        <i class="fa-solid {{ 'fa-circle-exclamation' if category == 'error' else 'fa-circle-check' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Headline Hero Grid -->
+        <div class="row g-4 mb-5">
+            <div class="col-lg-7">
+                <div class="cyber-hero-card">
+                    <h1 class="hero-title">🛡️ Intelligent Security Log Analysis</h1>
+                    <p class="hero-subtitle">Upload system, network, or server log files. LogGuardian AI will parse entries, correlate events, map detections to MITRE ATT&CK techniques, and compile junior SOC analyst-grade reports automatically.</p>
+                    
+                    <div class="badge-row mt-4">
+                        <span class="badge badge-cyber"><i class="fa-solid fa-server me-1"></i> Apache / Nginx</span>
+                        <span class="badge badge-cyber"><i class="fa-solid fa-key me-1"></i> Linux auth.log</span>
+                        <span class="badge badge-cyber"><i class="fa-solid fa-shield-halved me-1"></i> Firewalls</span>
+                        <span class="badge badge-cyber"><i class="fa-solid fa-terminal me-1"></i> Syslog</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-5">
+                <div class="scan-upload-card card-glow">
+                    <h3 class="card-title-cyber"><i class="fa-solid fa-upload me-2 text-indigo"></i>Ingest Log Asset</h3>
+                    <form action="{{ url_for('scan_log') }}" method="POST" enctype="multipart/form-data" class="mt-3" id="upload-form">
+                        
+                        <!-- Drag and Drop Panel -->
+                        <div class="drop-zone" id="drop-zone">
+                            <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+                            <p class="drop-text">Drag & drop log file here or <span>browse files</span></p>
+                            <input type="file" name="log_file" id="log_file_input" required class="d-none">
+                            <div class="selected-file-info d-none" id="file-info">
+                                <i class="fa-solid fa-file-lines me-2 text-info"></i>
+                                <span class="file-name" id="selected-file-name">filename.log</span>
+                                <span class="file-size" id="selected-file-size">(0 KB)</span>
+                            </div>
+                        </div>
+
+                        <!-- Scan Options -->
+                        <div class="mb-4">
+                            <label for="log_type" class="form-label-cyber">Log Format Profile</label>
+                            <select class="form-select-cyber" id="log_type" name="log_type">
+                                <option value="auto" selected>Auto-Detect Format (Recommended)</option>
+                                <option value="apache_nginx_access">Apache / Nginx Access Logs</option>
+                                <option value="apache_error">Apache Error Logs</option>
+                                <option value="linux_auth">Linux auth.log (SSH)</option>
+                                <option value="firewall_iptables">UFW / iptables Firewall Logs</option>
+                                <option value="custom">Custom Plain Text Logs</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-cyber-primary w-100" id="scan-submit-btn">
+                            <i class="fa-solid fa-bolt me-2"></i>Trigger Threat Scan
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global SOC Metrics Cards -->
+        <h2 class="section-title-cyber mb-4"><i class="fa-solid fa-chart-line me-2 text-cyan"></i>Global Security Telemetry</h2>
+        <div class="row g-4 mb-5">
+            <div class="col-md-3">
+                <div class="metric-card-cyber text-center">
+                    <div class="icon-wrap bg-cyan-glow"><i class="fa-solid fa-radar"></i></div>
+                    <h4 class="metric-label">Scans Executed</h4>
+                    <p class="metric-value">{{ global_stats.total_scans }}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card-cyber text-center">
+                    <div class="icon-wrap bg-red-glow"><i class="fa-solid fa-skull-crossbones"></i></div>
+                    <h4 class="metric-label">Threats Logged</h4>
+                    <p class="metric-value text-danger">{{ global_stats.total_alerts }}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card-cyber text-center">
+                    <div class="icon-wrap bg-indigo-glow"><i class="fa-solid fa-list-check"></i></div>
+                    <h4 class="metric-label">Processed Log Lines</h4>
+                    <p class="metric-value">{{ global_stats.total_logs }}</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card-cyber text-center">
+                    {% set score = global_stats.avg_security_score | int %}
+                    {% set score_color = 'text-success' if score >= 85 else ('text-warning' if score >= 60 else 'text-danger') %}
+                    <div class="icon-wrap bg-green-glow"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <h4 class="metric-label">Average Health Score</h4>
+                    <p class="metric-value {{ score_color }}">{{ score }}/100</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historical Investigations History List -->
+        <div class="history-section-cyber mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="section-title-cyber m-0"><i class="fa-solid fa-clock-rotate-left me-2 text-indigo"></i>Investigation Archive</h2>
+                <div class="search-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" class="search-input-cyber" placeholder="Search logs, profile or risk rating...">
+                </div>
+            </div>
+
+            <div class="cyber-table-card">
+                <div class="table-responsive">
+                    <table class="table table-cyber align-middle" id="scans-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Log Filename</th>
+                                <th>Log Profile</th>
+                                <th>Health Score</th>
+                                <th>Risk Assessment</th>
+                                <th>Threat Incidents</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scans-list-body">
+                            {% if scans %}
+                                {% for scan in scans %}
+                                    {% set risk_class = scan.risk_rating.lower() %}
+                                    <tr data-scan-id="{{ scan.id }}">
+                                        <td>{{ scan.timestamp.split('T')[0] }} <span class="text-secondary small">{{ scan.timestamp.split('T')[1][:5] if 'T' in scan.timestamp else '' }}</span></td>
+                                        <td><strong>{{ scan.filename }}</strong> <span class="text-secondary small">({{ scan.file_size | format_size }})</span></td>
+                                        <td><span class="badge badge-cyber text-uppercase">{{ scan.log_type.replace('_', ' ') }}</span></td>
+                                        <td>
+                                            {% set score = scan.security_score %}
+                                            {% set score_class = 'score-success' if score >= 85 else ('score-warning' if score >= 60 else 'score-danger') %}
+                                            <span class="score-badge {{ score_class }}">{{ score }}/100</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-risk badge-risk-{{ risk_class }}">{{ scan.risk_rating }}</span>
+                                        </td>
+                                        <td>
+                                            {% if scan.total_alerts > 0 %}
+                                                <span class="text-danger font-monospace fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>{{ scan.total_alerts }} Alerts</span>
+                                            {% else %}
+                                                <span class="text-success font-monospace fw-bold"><i class="fa-solid fa-circle-check me-1"></i>Clean</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('dashboard', scan_id=scan.id) }}" class="btn btn-sm btn-cyber-outline"><i class="fa-solid fa-chart-column me-1"></i>Dashboard</a>
+                                                <button type="button" class="btn btn-sm btn-cyber-danger" onclick="confirmDelete('{{ scan.id }}', '{{ scan.filename }}')"><i class="fa-solid fa-trash-can"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr id="no-scans-row">
+                                    <td colspan="7" class="text-center py-5 text-secondary">
+                                        <i class="fa-solid fa-folder-open d-block fs-1 mb-3"></i>
+                                        No historical logs scanned. Use the upload panel to get started.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade cyber-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i>Purge Scan Record</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the security analysis history for <strong id="delete-filename">filename.log</strong>? This action will permanently drop the alerts database mapping and cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cyber-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form id="delete-form" method="POST" action="">
+                        <button type="submit" class="btn btn-cyber-danger-filled"><i class="fa-solid fa-trash-can me-1"></i>Purge Permanently</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="cyber-footer py-4 mt-5">
+        <div class="container text-center text-secondary">
+            <p class="m-0">LogGuardian AI Platform &copy; 2026 | Designed & Engineered by <a href="{{ dev_info.github }}" target="_blank" class="dev-link">{{ dev_info.name }}</a></p>
+            <p class="small text-secondary mt-1">SIEM Compliant Threat Intel Log Parser | SOC Junior Analyst Simulation Engine</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS Script -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
